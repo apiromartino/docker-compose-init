@@ -1,5 +1,6 @@
 import socket
 import logging
+import signal
 
 
 class Server:
@@ -18,8 +19,8 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+
         while True:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
@@ -36,7 +37,8 @@ class Server:
             logging.info(
                 'Message received from connection {}. Msg: {}'
                 .format(client_sock.getpeername(), msg))
-            client_sock.send("Your Message has been received: {}\n".format(msg).encode('utf-8'))
+            client_sock.send(
+                "Your Message has been received: {}\n".format(msg).encode('utf-8'))
         except OSError:
             logging.info("Error while reading socket {}".format(client_sock))
         finally:
@@ -55,3 +57,7 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info('Got connection from {}'.format(addr))
         return c
+
+    def exit_gracefully(self):
+        logging.info("Exiting gracefully. Closing server socket")
+        self._server_socket.close()
