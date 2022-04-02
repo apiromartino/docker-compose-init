@@ -1,6 +1,7 @@
 import socket
 import logging
 import signal
+import sys
 
 
 class Server:
@@ -19,10 +20,11 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
 
         while True:
             client_sock = self.__accept_new_connection()
+            self.client_sock = client_sock
             self.__handle_client_connection(client_sock)
 
     def __handle_client_connection(self, client_sock):
@@ -58,6 +60,13 @@ class Server:
         logging.info('Got connection from {}'.format(addr))
         return c
 
-    def exit_gracefully(self):
-        logging.info("Exiting gracefully. Closing server socket")
+    def exit_gracefully(self, sig, frame):
+        logging.info("Exiting gracefully.")
+        logging.debug("Closing server socket.")
         self._server_socket.close()
+
+        if self.client_sock:
+            logging.debug("Closing client socket.")
+            self.client_sock.close()
+
+        sys.exit(0)
