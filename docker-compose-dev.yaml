@@ -12,9 +12,15 @@ services:
     networks:
       - testing_net
 
-  serverTester:
-    container_name: serverTester
-    build: ./serverTester
+  client1:
+    container_name: client1
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=1
+      - CLI_SERVER_ADDRESS=server:12345
+      - CLI_LOOP_LAPSE=1m2s
+      - CLI_LOG_LEVEL=DEBUG
     networks:
       - testing_net
     depends_on:
