@@ -2,6 +2,7 @@ import socket
 import logging
 import signal
 import sys
+import multiprocessing
 
 
 class Server:
@@ -25,7 +26,10 @@ class Server:
         while True:
             client_sock = self.__accept_new_connection()
             self.client_sock = client_sock
-            self.__handle_client_connection(client_sock)
+
+            p = multiprocessing.Process(
+                target=self.__handle_client_connection(client_sock))
+            p.start()
 
     def __handle_client_connection(self, client_sock):
         """
