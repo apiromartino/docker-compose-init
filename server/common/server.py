@@ -1,7 +1,8 @@
-from signal import signal
+import signal
 import socket
 import logging
 import multiprocessing
+import sys
 
 
 class Server:
@@ -15,8 +16,6 @@ class Server:
         self.client_sockets = {}
 
     def run(self):
-
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
 
         processes_number = self.listen_backlog if self.listen_backlog <= multiprocessing.cpu_count(
         ) else multiprocessing.multiprocessing.cpu_count()
@@ -74,4 +73,18 @@ class Server:
         return c
 
     def exit_gracefully(self, sig, frame):
-        return
+        logging.info("Exiting gracefully.")
+
+        logging.debug("Closing server socket.")
+        self._server_socket.close()
+
+        logging.debug("Closing clients sockets.")
+        for client_socket in self.client_sockets:
+            self.client_sockets[client_socket].close()
+
+        logging.debug("Terminate processes.")
+        for process in self.processes:
+            process.terminate()
+            process.join()
+
+        sys.exit(0)
