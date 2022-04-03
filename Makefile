@@ -37,3 +37,13 @@ docker-compose-down:
 docker-compose-logs:
 	docker-compose -f docker-compose-dev.yaml logs -f
 .PHONY: docker-compose-logs
+
+docker-tester-up:
+	docker build -t server-tester ./server-tester
+	docker run -d -i --rm --network=docker-compose-init_testing_net --name server-tester server-tester
+	docker exec server-tester sh -c "echo ping | nc server 12345"
+.PHONY: docker-tester-up
+
+docker-tester-stop:
+	docker stop server-tester
+.PHONY: docker-tester-stop
