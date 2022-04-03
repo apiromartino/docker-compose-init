@@ -16,7 +16,16 @@ class Server:
         self.client_sockets = {}
 
     def run(self):
+        """
+        Creates as many processes as number of connections the server
+        can receive.
 
+        Every process accepts client connections and handles them.
+
+        If the listen backlog is bigger than the CPU cores, creates as
+        many processes asCPU cores.
+
+        """
         processes_number = self.listen_backlog if self.listen_backlog <= multiprocessing.cpu_count(
         ) else multiprocessing.multiprocessing.cpu_count()
         for i in range(0, processes_number):
