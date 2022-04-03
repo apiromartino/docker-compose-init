@@ -1,5 +1,8 @@
+import signal
 import socket
 import logging
+import multiprocessing
+import sys
 
 
 class Server:
@@ -8,23 +11,43 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.listen_backlog = listen_backlog
+        self.processes = []
+        self.client_sockets = {}
 
     def run(self):
         """
-        Dummy Server loop
+        Creates as many processes as number of connections the server
+        can receive.
+
+        Every process accepts client connections and handles them.
+
+        If the listen backlog is bigger than the CPU cores, creates as
+        many processes asCPU cores.
+
+        """
+        processes_number = self.listen_backlog if self.listen_backlog <= multiprocessing.cpu_count(
+        ) else multiprocessing.multiprocessing.cpu_count()
+        for i in range(0, processes_number):
+            p = multiprocessing.Process(
+                target=self.__new_connection, args=(i,))
+            p.start()
+            self.processes.append(p)
+
+    def __new_connection(self, client_id):
+        """
+        Dummy Process Server loop
 
         Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
+        communication with a client. After client with communication
+        finishes, this process starts to accept new connections again
         """
-
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
         while True:
             client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            self.client_sockets[client_id] = client_sock
+            self.__handle_client_connection(client_sock, client_id)
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self, client_sock, client_id):
         """
         Read message from a specific client socket and closes the socket
 
@@ -36,11 +59,13 @@ class Server:
             logging.info(
                 'Message received from connection {}. Msg: {}'
                 .format(client_sock.getpeername(), msg))
-            client_sock.send("Your Message has been received: {}\n".format(msg).encode('utf-8'))
+            client_sock.send(
+                "Your Message has been received: {}\n".format(msg).encode('utf-8'))
         except OSError:
             logging.info("Error while reading socket {}".format(client_sock))
         finally:
             client_sock.close()
+            del self.client_sockets[client_id]
 
     def __accept_new_connection(self):
         """
@@ -55,3 +80,25 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info('Got connection from {}'.format(addr))
         return c
+
+    def exit_gracefully(self, sig, frame):
+        """
+        Exits the program gracefully
+
+        Closes server socket, client connections and terminates all processes.
+        """
+        logging.info("Exiting gracefully.")
+
+        logging.debug("Closing server socket.")
+        self._server_socket.close()
+
+        logging.debug("Closing clients sockets.")
+        for client_socket in self.client_sockets:
+            self.client_sockets[client_socket].close()
+
+        logging.debug("Terminate processes.")
+        for process in self.processes:
+            process.terminate()
+            process.join()
+
+        sys.exit(0)
