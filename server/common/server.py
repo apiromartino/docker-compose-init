@@ -1,6 +1,5 @@
 import socket
 import logging
-import signal
 import multiprocessing
 
 
@@ -10,6 +9,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.listen_backlog = listen_backlog
 
     def run(self):
         """
@@ -20,12 +20,15 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
+        for _ in range(0, self.listen_backlog):
+            p = multiprocessing.Process(
+                target=self.__new_connection)
+            p.start()
+
+    def __new_connection(self):
         while True:
             client_sock = self.__accept_new_connection()
-
-            p = multiprocessing.Process(
-                target=self.__handle_client_connection, args=(client_sock,))
-            p.start()
+            self.__handle_client_connection(client_sock)
 
     def __handle_client_connection(self, client_sock):
         """
