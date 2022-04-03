@@ -82,6 +82,11 @@ class Server:
         return c
 
     def exit_gracefully(self, sig, frame):
+        """
+        Exits the program gracefully
+
+        Closes server socket, client connections and terminates all processes.
+        """
         logging.info("Exiting gracefully.")
 
         logging.debug("Closing server socket.")
