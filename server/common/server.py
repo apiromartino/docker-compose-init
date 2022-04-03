@@ -20,7 +20,9 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        for _ in range(0, self.listen_backlog):
+        processes_number = self.listen_backlog if self.listen_backlog <= multiprocessing.cpu_count(
+        ) else multiprocessing.multiprocessing.cpu_count()
+        for _ in range(0, processes_number):
             p = multiprocessing.Process(
                 target=self.__new_connection)
             p.start()
